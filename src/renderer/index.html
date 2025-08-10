@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self';" />
+    <title>FloorEditor - Script Editor</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material.min.css" />
+</head>
+
+<body>
+    <header class="app-header">
+        <h1>FloorEditor Script Editor</h1>
+        <div class="actions">
+            <button id="runBtn" class="primary">실행 (Ctrl+Enter)</button>
+            <button id="stopBtn" disabled>중단</button>
+            <button id="clearBtn">출력 지우기</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="editor-pane">
+            <div class="snippet-bar">
+                <div class="group">
+                    <span>기본</span>
+                    <button data-snippet="var" title="변수 선언">변수</button>
+                    <button data-snippet="log" title="콘솔 로그">로그</button>
+                    <button data-snippet="sleep" title="일정 시간 대기">대기</button>
+                    <button data-snippet="for" title="for 반복">반복(for)</button>
+                    <button data-snippet="while" title="while 반복">반복(while)</button>
+                    <button data-snippet="if" title="조건문 if/else">조건(if)</button>
+                    <button data-snippet="switch" title="조건문 switch">조건(switch)</button>
+                </div>
+                <details>
+                    <summary>특수</summary>
+                    <div class="group">
+                        <button data-snippet="alert">알림</button>
+                    </div>
+                </details>
+                <details>
+                    <summary>예시</summary>
+                    <div class="group">
+                        <button data-snippet="hello">Hello</button>
+                        <button data-snippet="wait">대기 후 출력</button>
+                        <button data-snippet="ticks">반복 로그</button>
+                        <button data-snippet="sum">합계 계산</button>
+                        <button data-snippet="object">객체 반환</button>
+                    </div>
+                </details>
+                <details>
+                    <summary>통신</summary>
+                    <div class="group">
+                        <button data-snippet="comm-color">색상</button>
+                        <button data-snippet="comm-color-range">연속색상</button>
+                        <button data-snippet="comm-button-state">버튼 상태</button>
+                        <button data-snippet="comm-button-pressed-pending">Pressed pending</button>
+                        <button data-snippet="comm-button-unpressed-pending">Unpressed pending</button>
+                    </div>
+                </details>
+            </div>
+            <textarea id="editor" spellcheck="false"></textarea>
+        </section>
+        <div class="resizer" id="resizer" title="드래그로 사이즈 조정"></div>
+        <section class="output-pane">
+            <div class="comm-bar">
+          <label>IP <input id="tcpIp" type="text" value="192.168.0.100" /></label>
+          <label>Port <input id="tcpPort" type="number" value="20105" /></label>
+          <button id="tcpStatus" class="status-dot">●</button>
+          <span id="tcpStatusText" class="status-text">해제</span>
+          <button id="tcpConnectBtn">연결</button>
+          <button id="simBtn">시뮬레이션</button>
+          <button id="disconnectBtn">해제</button>
+            </div>
+            <div class="board-area">
+                <div class="board" id="board"></div>
+          <div class="io-logs">
+                    <div class="io-block">
+                        <div class="io-title">RX</div>
+                        <pre id="rxLog" class="io-pre"></pre>
+                    </div>
+                    <div class="io-block">
+                        <div class="io-title">TX</div>
+                        <pre id="txLog" class="io-pre"></pre>
+                    </div>
+                </div>
+          <div id="simWrapper" style="display:none;">
+            <details id="simDetails">
+              <summary>시뮬레이션 입력</summary>
+              <div class="sim-panel" id="simPanel"></div>
+            </details>
+          </div>
+            </div>
+            <div id="status" class="status"></div>
+            <pre id="output" class="output"></pre>
+        </section>
+      <div id="modalBackdrop" class="modal-backdrop">
+        <div class="modal">
+          <h3>보드 설정</h3>
+          <div class="row"><label>주소</label><input id="modalAddr" type="number" min="0" max="255" /></div>
+          <div class="row"><label>색상 HEX</label><input id="modalHex" type="text" placeholder="FF0000" /></div>
+          <div class="actions">
+            <button id="modalCancel">취소</button>
+            <button id="modalOk" class="primary">확인</button>
+          </div>
+        </div>
+      </div>
+      <div id="boardPopover" class="popover" style="display:none;"></div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="renderer.js"></script>
+</body>
+
+</html>

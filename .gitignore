@@ -1,0 +1,28 @@
+# Node/Electron
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+package-lock.json
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build/Output
+dist/
+out/
+build/
+release/
+coverage/
+
+# Temp
+*.tmp
+*.swp
+*.swo
+*.log
+
+
