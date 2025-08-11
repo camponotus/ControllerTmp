@@ -223,7 +223,7 @@ snippetBar.addEventListener('click', (e) => {
 
 // Board 3x2
 const boardEl = document.getElementById('board');
-const defaultAddrs = [3,4,5,2,1,0];
+const defaultAddrs = [2,1,0,3,4,5];
 const cells = [];
 const cellState = defaultAddrs.map((addr) => ({ addr, color: [0,0,0], pressed: false, pendingPressed: false, pendingUnpressed: false }));
 

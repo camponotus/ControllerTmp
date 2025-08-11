@@ -38,12 +38,20 @@
       "signAndEditExecutable": false
     },
     "mac": {
-      "target": ["dmg"],
-      "arch": ["x64", "arm64"]
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
     },
     "linux": {
-      "target": ["AppImage"],
-      "arch": ["x64"]
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ]
     }
   }
 }
