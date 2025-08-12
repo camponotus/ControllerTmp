@@ -1,0 +1,301 @@
+# FloorEditor 스크립트 시스템 AI 프롬프트
+
+## 프로젝트 개요
+FloorEditor는 Vibe 프로젝트를 위한 Floor LED 에디터입니다. 이 시스템은 사용자가 JavaScript 스크립트를 작성하여 LED 패널과 버튼을 제어할 수 있는 Electron 기반 데스크톱 애플리케이션입니다.
+
+**중요**: 실제 발판은 6개뿐입니다 (LED 주소 0-5). 64개 LED 주소가 지원되지만 실제 물리적 발판은 6개입니다.
+
+## 스크립트 실행 환경
+
+### 기본 JavaScript 환경
+- Node.js VM 모듈을 사용한 샌드박스 환경
+- 비동기 실행 지원 (async/await)
+- 표준 JavaScript 기능: Math, Date, setTimeout, setInterval, clearTimeout, clearInterval
+- console 객체: log, info, warn, error 메서드 지원
+
+### 제한사항
+- 파일 시스템 접근 불가
+- 네트워크 직접 접근 불가
+- 전역 객체 접근 제한
+- **중요**: 무한 루프 방지를 위한 자동 실행 시간 제한은 없음 - 사용자가 수동으로 중단해야 함
+
+## 핵심 API 함수들
+
+### 1. LED 제어 함수
+
+#### sendColor(addr, rgb)
+- **목적**: 특정 LED 주소에 RGB 색상을 설정
+- **매개변수**:
+  - `addr` (number): LED 주소 (0-255)
+  - `rgb` (array): [R, G, B] 배열, 각 값은 0-255
+- **예시**:
+```javascript
+sendColor(0, [255, 0, 0]);    // 주소 0에 빨간색
+sendColor(1, [0, 255, 0]);    // 주소 1에 초록색
+sendColor(2, [0, 0, 255]);    // 주소 2에 파란색
+```
+
+#### sendColorRange(start, colors)
+- **목적**: 연속된 LED 주소들에 색상 배열을 한 번에 설정
+- **매개변수**:
+  - `start` (number): 시작 LED 주소 (0-255)
+  - `colors` (array): RGB 색상 배열들의 배열 [[R,G,B], [R,G,B], ...]
+- **예시**:
+```javascript
+sendColorRange(0, [
+  [255, 0, 0],    // 주소 0: 빨간색
+  [0, 255, 0],    // 주소 1: 초록색
+  [0, 0, 255]     // 주소 2: 파란색
+]);
+```
+
+### 2. 버튼 상태 감지 함수
+
+#### getButtonState(addr)
+- **목적**: 특정 버튼의 현재 눌림 상태를 확인
+- **매개변수**:
+  - `addr` (number): 버튼 주소 (0-255)
+- **반환값**: boolean - 버튼이 눌려있으면 true, 아니면 false
+- **예시**:
+```javascript
+if (getButtonState(0)) {
+  console.log("버튼 0이 눌려있습니다");
+}
+```
+
+#### takePressedPending(addr)
+- **목적**: 버튼이 눌린 적이 있는지 확인하고 상태를 소비
+- **매개변수**:
+  - `addr` (number): 버튼 주소 (0-255)
+- **반환값**: boolean - 버튼이 눌린 적이 있으면 true, 아니면 false
+- **동작**: 
+  - 버튼이 눌리면 내부적으로 pending 상태가 true로 설정됨
+  - 이 함수가 호출되면 pending 상태를 확인하고 true이면 한 번 true를 반환한 후 false로 리셋
+  - 연속 호출 시 첫 번째만 true, 이후는 false 반환
+- **예시**:
+```javascript
+if (takePressedPending(0)) {
+  console.log("버튼 0이 눌린 적이 있습니다");
+  sendColor(0, [255, 255, 255]); // 흰색으로 변경
+}
+```
+
+#### takeUnpressedPending(addr)
+- **목적**: 버튼이 떼어진 적이 있는지 확인하고 상태를 소비
+- **매개변수**:
+  - `addr` (number): 버튼 주소 (0-255)
+- **반환값**: boolean - 버튼이 떼어진 적이 있으면 true, 아니면 false
+- **동작**: 
+  - 버튼이 떼어지면 내부적으로 pending 상태가 true로 설정됨
+  - 이 함수가 호출되면 pending 상태를 확인하고 true이면 한 번 true를 반환한 후 false로 리셋
+  - 연속 호출 시 첫 번째만 true, 이후는 false 반환
+- **예시**:
+```javascript
+if (takeUnpressedPending(0)) {
+  console.log("버튼 0이 떼어진 적이 있습니다");
+  sendColor(0, [0, 0, 0]); // 꺼짐
+}
+```
+
+### 3. 버튼 입력 처리 특성
+
+#### 동시성 처리
+- **여러 버튼 동시 입력**: 여러 버튼이 거의 동시에 눌릴 수 있음
+- **실시간 처리**: 버튼 입력은 프레임 단위로 실시간 처리됨
+- **순서 보장**: TCP 스트림으로 전송되므로 입력 순서가 보장됨
+
+#### 처리 방식
+- **프레임 기반**: 스크립트의 무한 루프가 프레임 단위로 실행됨
+- **누적 처리**: 한 프레임에서 여러 버튼의 pending 상태를 모두 처리 가능
+- **상태 유지**: 버튼의 현재 상태와 pending 상태가 별도로 관리됨
+
+#### 예시: 동시 입력 처리
+```javascript
+while (true) {
+  // 여러 버튼의 pending 상태를 한 프레임에서 모두 처리
+  if (takePressedPending(0)) {
+    console.log("버튼 0 눌림");
+    sendColor(0, [255, 0, 0]);
+  }
+  
+  if (takePressedPending(1)) {
+    console.log("버튼 1 눌림");
+    sendColor(1, [0, 255, 0]);
+  }
+  
+  if (takePressedPending(2)) {
+    console.log("버튼 2 눌림");
+    sendColor(2, [0, 0, 255]);
+  }
+  
+  // 프레임 간격 조절 (실시간성 보장)
+  await new Promise(resolve => setTimeout(resolve, 16)); // ~60fps
+}
+```
+
+### 4. 유틸리티 함수
+
+#### alert(text)
+- **목적**: 사용자에게 팝업 알림 표시
+- **매개변수**:
+  - `text` (string): 표시할 메시지
+- **예시**:
+```javascript
+alert("스크립트가 완료되었습니다!");
+```
+
+#### console 객체
+- **console.log(...args)**: 일반 로그
+- **console.info(...args)**: 정보 로그
+- **console.warn(...args)**: 경고 로그
+- **console.error(...args)**: 오류 로그
+
+## 스크립트 작성 패턴
+
+### 1. 기본 LED 제어 패턴
+```javascript
+// 모든 LED를 끄기
+for (let i = 0; i < 64; i++) {
+  sendColor(i, [0, 0, 0]);
+}
+
+// 특정 패턴으로 LED 켜기
+for (let i = 0; i < 64; i++) {
+  if (i % 2 === 0) {
+    sendColor(i, [255, 0, 0]); // 짝수 주소는 빨간색
+  } else {
+    sendColor(i, [0, 0, 255]); // 홀수 주소는 파란색
+  }
+}
+```
+
+### 2. 버튼 반응형 패턴
+```javascript
+// 무한 루프로 버튼 상태 감시
+while (true) {
+  if (takePressedPending(0)) {
+    // 버튼 0이 눌렸을 때
+    sendColor(0, [255, 255, 255]);
+  }
+  
+  if (takeUnpressedPending(0)) {
+    // 버튼 0이 떼어졌을 때
+    sendColor(0, [0, 0, 0]);
+  }
+  
+  // CPU 사용량을 줄이기 위한 짧은 대기
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+```
+
+### 3. 애니메이션 패턴
+```javascript
+// 움직이는 빛 효과
+let position = 0;
+while (true) {
+  // 이전 위치 끄기
+  sendColor(position, [0, 0, 0]);
+  
+  // 다음 위치 계산
+  position = (position + 1) % 64;
+  
+  // 새 위치 켜기
+  sendColor(position, [255, 255, 0]);
+  
+  // 애니메이션 속도 조절
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
+```
+
+### 4. 복합 상호작용 패턴
+```javascript
+// 여러 버튼으로 다양한 효과 제어
+let mode = 0;
+const colors = [
+  [255, 0, 0],   // 빨간색
+  [0, 255, 0],   // 초록색
+  [0, 0, 255],   // 파란색
+  [255, 255, 0], // 노란색
+  [255, 0, 255], // 마젠타
+  [0, 255, 255]  // 시안
+];
+
+while (true) {
+  // 버튼 0: 모드 변경
+  if (takePressedPending(0)) {
+    mode = (mode + 1) % colors.length;
+    console.log(`모드 변경: ${mode}`);
+  }
+  
+  // 버튼 1: 모든 LED에 현재 모드 색상 적용
+  if (takePressedPending(1)) {
+    for (let i = 0; i < 64; i++) {
+      sendColor(i, colors[mode]);
+    }
+  }
+  
+  // 버튼 2: 모든 LED 끄기
+  if (takePressedPending(2)) {
+    for (let i = 0; i < 64; i++) {
+      sendColor(i, [0, 0, 0]);
+    }
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+```
+
+## 주의사항 및 모범 사례
+
+### 1. 성능 고려사항
+- **중요**: 무한 루프에서는 반드시 `setTimeout` 또는 `await`를 사용하여 CPU 사용량 제한
+- 시스템에 자동 실행 시간 제한이 없으므로, 무한 루프 시 사용자가 수동으로 중단해야 함
+- LED 업데이트는 필요한 경우에만 수행
+- 버튼 상태 확인은 적절한 주기로 수행
+
+### 2. 오류 처리
+- 잘못된 주소나 색상 값 사용 시 시스템이 자동으로 범위 제한
+- 스크립트 오류 시 자동으로 실행 중단
+
+### 3. 디버깅
+- `console.log`를 활용하여 스크립트 동작 추적
+- `alert`를 사용하여 중요한 이벤트 알림
+
+## 스크립트 요청 시 고려사항
+
+AI가 스크립트를 작성할 때 다음 정보를 제공해주세요:
+
+1. **목적**: 어떤 효과나 동작을 원하는지
+2. **입력**: 어떤 버튼이나 조건에 반응할지
+3. **출력**: 어떤 LED 패턴이나 색상을 원하는지
+4. **타이밍**: 애니메이션 속도나 반응 속도
+5. **복잡도**: 간단한 효과인지 복잡한 상호작용인지
+
+## 예시 스크립트 요청
+
+"버튼 0을 누르면 LED 0-7까지가 순차적으로 빨간색으로 켜지고, 버튼 1을 누르면 모두 꺼지는 스크립트를 만들어줘"
+
+이런 요청에 대해 AI는 다음과 같은 스크립트를 생성할 수 있습니다:
+
+```javascript
+while (true) {
+  // 버튼 0: 순차적으로 LED 켜기
+  if (takePressedPending(0)) {
+    for (let i = 0; i < 8; i++) {
+      sendColor(i, [255, 0, 0]);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  // 버튼 1: 모든 LED 끄기
+  if (takePressedPending(1)) {
+    for (let i = 0; i < 8; i++) {
+      sendColor(i, [0, 0, 0]);
+    }
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+```
+
+이 문서를 참고하여 FloorEditor 시스템에 맞는 JavaScript 스크립트를 작성해주세요.

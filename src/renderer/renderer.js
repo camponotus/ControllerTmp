@@ -399,8 +399,16 @@ window.api.onTcpStatus?.(({ status }) => {
 });
 
 function appendHex(pre, bytes) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('ko-KR', { 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    fractionalSecondDigits: 3
+  });
   const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
-  pre.textContent += hex + '\n';
+  pre.textContent += `[${timeStr}] ${hex}\n`;
   pre.scrollTop = pre.scrollHeight;
 }
 
