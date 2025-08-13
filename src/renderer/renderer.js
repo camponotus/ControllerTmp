@@ -282,7 +282,10 @@ renderBoard();
 window.api.onTcpRx?.((payload) => {
   if (!payload?.bytes) return;
   const bytes = payload.bytes;
-  // log already handled above
+  
+  // 실제 데이터가 있을 때만 처리 (빈 배열이나 에러는 무시)
+  if (bytes.length === 0) return;
+  
   // handle addr/value
   if (bytes.length === 2) {
     const [addr, val] = bytes;
@@ -413,7 +416,7 @@ function appendHex(pre, bytes) {
 }
 
 window.api.onTcpRx?.((payload) => {
-  if (payload?.bytes) appendHex(rxLog, payload.bytes);
+  if (payload?.bytes && payload.bytes.length > 0) appendHex(rxLog, payload.bytes);
 });
 window.api.onTcpTxLocal?.((payload) => {
   if (payload?.bytes) appendHex(txLog, payload.bytes);

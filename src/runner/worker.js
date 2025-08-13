@@ -91,6 +91,7 @@ parentPort.on('message', (msg) => {
       if (st.pp) {
         st.pp = false;
         buttonCache.set(a, st);
+        // pending 상태가 실제로 변경되었을 때만 메시지 전송
         parentPort.postMessage({ type: 'pending-consume', kind: 'pp', addr: a });
       }
       return val;
@@ -102,6 +103,7 @@ parentPort.on('message', (msg) => {
       if (st.up) {
         st.up = false;
         buttonCache.set(a, st);
+        // pending 상태가 실제로 변경되었을 때만 메시지 전송
         parentPort.postMessage({ type: 'pending-consume', kind: 'up', addr: a });
       }
       return val;

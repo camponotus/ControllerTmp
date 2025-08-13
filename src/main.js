@@ -244,7 +244,6 @@ ipcMain.handle('run-script', async (event, payload) => {
       } else if (msg && msg.type === 'sandbox-tx') {
         if (msg.kind === 'color') {
           const arr = [msg.addr & 0xff, 1, msg.rgb?.[0] & 0xff, msg.rgb?.[1] & 0xff, msg.rgb?.[2] & 0xff];
-          broadcast(win, 'tcp-rx', { bytes: [] }); // noop
           if (tcpByWindow.get(windowId)) tcpByWindow.get(windowId).socket.write(Buffer.from(arr));
           broadcast(win, 'tcp-tx-local', { bytes: arr });
         } else if (msg.kind === 'range') {
@@ -467,7 +466,8 @@ ipcMain.handle('tcp-connect', async (event, { ip, port }) => {
     });
     socket.on('error', (err) => {
       setTcpStatus(win, 'disconnected');
-      broadcast(win, 'tcp-rx', { error: String(err?.message || err) });
+      // 에러는 로그로만 표시하고 빈 RX 이벤트는 발생시키지 않음
+      console.error('TCP connection error:', err);
       resolve({ ok: false, error: String(err?.message || err) });
     });
   });
